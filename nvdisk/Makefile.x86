@@ -1,0 +1,12 @@
+KERNELDIR ?= /root/dev/hisi/linux-3.0.y
+PWD := $(shell pwd)
+
+obj-m := nvd.o
+nvd-objs := util.o nv_proc.o remap.o netlink.o nvdisk.o
+all:
+	make -C /lib/modules/$(shell uname -r)/build SUBDIRS=$(PWD) modules
+	gcc -o demo ntlk_demo.c
+	rm -f *.o *.mod.c .*.cmd sysenter.h Module.symvers
+clean:
+	rm -f *.o *.ko *.mod.c .*.cmd sysenter.h Module.symvers
+	make -C /lib/modules/$(shell uname -r)/build SUBDIRS=$(PWD) clean

@@ -1,0 +1,32 @@
+version 1.4:
+add list:
+1. 磁盘上下线通知
+fix list:
+1. 3535平台上磁盘上线均为0-0-0-0；
+2. 磁盘的序列号获取错误；
+3. /proc/nvd/info中概率性磁盘掉线；
+
+version 1.3:
+add list:
+1. 内核环境改为linux-3.4.y
+
+version 1.2:
+fix list:
+1. 更新proc中disk状态显示，由“Good/Error/Fail”更新为“Good/Warning/Error”
+add list:
+1. 添加netlink通知接口。
+2. 添加netlink用户态接收示例。
+
+version 1.1:
+fix list:
+1.  nvdisk proc中看不到盘，但系统中看的到盘。（#25 盘）
+2.  nvdisk proc中很短的时间里可能出现状态由Failed变为Error。
+3.  在拔插盘的过程中nvdisk proc中统计可能不准确。
+add list:
+1.  在/proc/nvdisk/info中增加version。
+
+
+version 1.0:
+first version。
+
+
