@@ -1,0 +1,21 @@
+{
+	"ImportPath": "song.com/rest",
+	"GoVersion": "go1.4",
+	"GodepVersion": "v63",
+	"Deps": [
+		{
+			"ImportPath": "github.com/ant0ine/go-json-rest/rest",
+			"Comment": "v3.3.1-5-gcfd0da1",
+			"Rev": "cfd0da14df1db088980175e1c3c7e77c11b90718"
+		},
+		{
+			"ImportPath": "github.com/ant0ine/go-json-rest/rest/trie",
+			"Comment": "v3.3.1-5-gcfd0da1",
+			"Rev": "cfd0da14df1db088980175e1c3c7e77c11b90718"
+		},
+		{
+			"ImportPath": "github.com/sluu99/uuid",
+			"Rev": "1dd34a9ad6c0e8dec93107f9c7425ea5713f78e1"
+		}
+	]
+}
