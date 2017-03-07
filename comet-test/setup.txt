@@ -1,0 +1,3 @@
+docker pull stratouklos/robotframework
+
+docker run -it --name robot -v /root/dev:/root/dev -v /root/temp:/root/temp -v /root/null:/root/null stratouklos/robotframework bash
