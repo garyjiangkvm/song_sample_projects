@@ -78,7 +78,7 @@ func Bench(c *cli.Context) {
 	seconds := c.Int64("seconds")
 	async = c.Bool("async")
 	if times == 0 && seconds == 0 {
-	    times = 5
+	    times = 1
 		seconds = 30
 	}
 
@@ -128,8 +128,8 @@ func Bench(c *cli.Context) {
 				continue
 			} else {
 				t := time.Now().Unix() - start
-				b := float64(count*capacity+woffset) / 1073741824
-				bw := float64(count*capacity+woffset) / float64(1048576*t)
+				b := float64(count*capacity+woffset) / SIZE_1G
+				bw := float64(count*capacity+woffset) / float64(SIZE_1M*t)
 				fmt.Printf("\n\n[Result]\nDevice:\t%s \nTime:\t%ds\nBytes:\t%f GB, \nBW:\t%f MB/s\nScan:\t%d times\nLook Good!\n\n", device, t, b, bw, count)
 				fmt.Println(msg)
 			}
@@ -155,7 +155,7 @@ func Bench(c *cli.Context) {
 				}
 			}
 
-			b := float64(count*capacity+woffset) / 1073741824
+			b := float64(count*capacity+woffset) / SIZE_1G
 			//fmt.Printf("count:%d, capacity:%d, woffset:%d DataSize:%d\n", count, capacity, woffset, DataSize)
 			fmt.Printf("Check %f GB [%d%%]\r", b, percent)
 		case sig := <-sigs:
