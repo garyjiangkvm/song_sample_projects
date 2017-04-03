@@ -1,0 +1,22 @@
+syntax = "proto3";
+package notifications;
+  
+  
+// endpoint: POST /v1/errors
+message Error {    
+    enum Level {
+        debug = 0;
+        info = 1;
+        warning = 2;
+        error = 3;
+        fatal = 4;
+    }
+      
+    string module = 1; // dataplane module, i.e. director
+    uint32 id = 2; // unique identifier
+    string type = 3; // optional type of error
+    string subject = 4; // affected subsystem
+    Level level = 5; // error level
+    string message = 6; // optional message
+}
+  

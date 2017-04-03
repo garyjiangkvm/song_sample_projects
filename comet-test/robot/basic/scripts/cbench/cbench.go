@@ -78,7 +78,7 @@ func Bench(c *cli.Context) {
 	seconds := c.Int64("seconds")
 	async = c.Bool("async")
 	if times == 0 && seconds == 0 {
-	    times = 1
+		times = 1
 		seconds = 30
 	}
 
