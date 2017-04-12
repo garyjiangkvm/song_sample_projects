@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -26,7 +27,9 @@ const (
 )
 
 var (
-	ErrTimeout = errors.New("Server takes too long to respond.")
+	ErrMsg   = "Resource Limit Is Reached"
+	ErrLimit = errors.New("Resource Limit Is Reached.")
+
 	setName    = "John"
 	setSurname = "Doe"
 	urls       = map[string]string{
@@ -124,38 +127,48 @@ func listenAndServeWithClose(sock string, addr string, handler http.Handler) (io
 	return sockListener, tcpListener, nil
 }
 
-//A generic function to get URL content asynchronously. Put everything in a response array when it is done.
-//We use this function to facilitate future extension for more urls. Caller will check the error and close resp.Body.
-func asyncHttpGets(urls map[string]string, timeout int) ([]*httpResponse, error) {
+func fetchWithTimeout(id string, url string, timeout int) (string, error) {
 	tm := time.Duration(timeout) * time.Second
-	ch := make(chan *httpResponse, len(urls)) // buffered channel
-	responses := []*httpResponse{}
-
-	for i, url := range urls {
-		go func(urlID string, url string) {
-			c := &http.Client{
-				Timeout: tm,
-			}
-			resp, err := c.Get(url)
-			ch <- &httpResponse{urlID, url, resp, err}
-		}(i, url)
+	c := &http.Client{
+		Timeout: tm,
 	}
 
+	count := 0
 	for {
-		select {
-		case r := <-ch:
-			responses = append(responses, r)
+		res, err := c.Get(url)
+		if err != nil {
+			return "", err
+		}
+		body, err := ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		if err != nil {
+			return "", err
+		}
 
-			if len(responses) == len(urls) {
-				return responses, nil
+		if id == "name" {
+			var p Person
+			if err = json.Unmarshal([]byte(body), &p); err != nil {
+				/* If the name server http://uinames.com/api/ is under pressure, sometimes it will return StatusOK with Error Msgs.
+				   I see couple of those messages as followings.
+				       Resource Limit Is Reached
+				       Out of Memory
+				       The requested URL /500 was not found on this server
+				    We can retry number of times before we finally give up.
+				*/
+
+				if count > 10 {
+					log.Println(ErrLimit.Error())
+					return "", ErrLimit
+				}
+				<-time.After(1 * time.Second)
+				count++
+			} else {
+				return string(body), nil
 			}
-		case <-time.After(tm):
-			return responses, ErrTimeout
+		} else {
+			return string(body), nil
 		}
 	}
-
-	return responses, nil
-
 }
 
 func (s *serviceContext) getJokeHandlerV1(w http.ResponseWriter, req *http.Request) {
@@ -163,50 +176,51 @@ func (s *serviceContext) getJokeHandlerV1(w http.ResponseWriter, req *http.Reque
 	var j Joke
 
 	s.Stat.TotalReq++
-	responses, err := asyncHttpGets(s.urls, s.timeout)
-	for _, r := range responses {
-		if r.err == nil {
-			defer r.response.Body.Close() //make sure we close the body
-		}
+	datac, errc := make(chan map[string]string), make(chan error)
+
+	for id, url := range s.urls {
+		go func(id string, url string) {
+			body, err := fetchWithTimeout(id, url, s.timeout)
+			if err != nil {
+				errc <- err
+				return
+			}
+			data := make(map[string]string)
+			data[id] = string(body)
+			datac <- data
+		}(id, url)
 	}
-	if err != nil {
-		s.Stat.ErrReq++
 
-		log.Println("Http get contents error - ", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	for i := 0; i < len(urls); i++ {
+		select {
+		case val := <-datac:
 
-	for _, r := range responses {
+			if body, ok := val["name"]; ok {
+				if err := json.Unmarshal([]byte(body), &p); err != nil {
+					s.Stat.ErrReq++
+					log.Println("Http get name json content error - ", err)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
 
-		if r.err != nil {
+			}
+
+			if body, ok := val["joke"]; ok {
+				if err := json.Unmarshal([]byte(body), &j); err != nil {
+					s.Stat.ErrReq++
+					log.Println("Http get joke json content error - ", err)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+			}
+
+		case err := <-errc:
 			s.Stat.ErrReq++
-
-			log.Println("Http get contents error on url ", r.url, r.err)
-			http.Error(w, r.err.Error(), http.StatusInternalServerError)
+			log.Println("Http get contents error - ", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
-		if r.id == "name" {
-			if err = json.NewDecoder(r.response.Body).Decode(&p); err != nil {
-				log.Println("Http parse response error on url ", r.url, err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-
-			}
-
-		}
-
-		if r.id == "joke" {
-			if err = json.NewDecoder(r.response.Body).Decode(&j); err != nil {
-				log.Println("Http parse response error on url ", r.url, err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-
-			}
-
-		}
-
 	}
 
 	//When we reach here, all URLs should be processed and parsed correctly.
@@ -215,6 +229,7 @@ func (s *serviceContext) getJokeHandlerV1(w http.ResponseWriter, req *http.Reque
 	msg := strings.Replace(j.Value.Joke, setName, p.Name, -1)
 	msg = strings.Replace(msg, setSurname, p.Surname, -1)
 
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(msg))
 
 }
