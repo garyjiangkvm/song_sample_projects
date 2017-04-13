@@ -21,7 +21,7 @@ import (
 
 const (
 	VERSION  = "1.0"
-	SOCKFILE = "/var/run/tigera/joke-service.sock"
+	SOCKFILE = "/var/run/names/joke-service.sock"
 	IPPORT   = ":5000"
 	TIMEOUT  = 5 //seconds
 )

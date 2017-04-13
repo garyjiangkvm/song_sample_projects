@@ -13,7 +13,7 @@ Build and run.
 
 This service support both unix domain socket and ip:port access. 
 
-- `/var/run/tigera/joke-service.sock`
+- `/var/run/names/joke-service.sock`
 - `localhost:5000`
 
 ## API definitions
